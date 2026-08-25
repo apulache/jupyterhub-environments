@@ -1,0 +1,12 @@
+ARG PYTHON_VERSION
+FROM python:${PYTHON_VERSION}-slim-bookworm
+
+ARG JUPYTERHUB_VERSION=5.4.2
+RUN useradd --create-home --uid 1000 --shell /bin/bash jovyan
+COPY requirements-singleuser.txt /tmp/requirements-singleuser.txt
+RUN pip install --no-cache-dir "jupyterhub==${JUPYTERHUB_VERSION}" -r /tmp/requirements-singleuser.txt \
+    && rm -f /tmp/requirements-singleuser.txt
+
+USER jovyan
+WORKDIR /home/jovyan
+CMD ["jupyterhub-singleuser"]
