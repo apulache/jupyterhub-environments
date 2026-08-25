@@ -1,0 +1,10 @@
+FROM python:3.13.15-slim-bookworm
+
+ARG JUPYTERHUB_VERSION=5.4.2
+
+RUN useradd --create-home --uid 1000 --shell /bin/bash jovyan
+COPY requirements-hub.txt /tmp/requirements-hub.txt
+RUN pip install --no-cache-dir "jupyterhub==${JUPYTERHUB_VERSION}" -r /tmp/requirements-hub.txt \
+    && rm -f /tmp/requirements-hub.txt
+
+USER jovyan
