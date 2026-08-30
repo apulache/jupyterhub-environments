@@ -1,11 +1,18 @@
 # syntax=docker/dockerfile:1.7
+ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.5.0
+FROM ${MICROMAMBA_IMAGE} AS micromamba
+
 ARG PYTHON_VERSION
 FROM python:${PYTHON_VERSION}-slim-bookworm
 
 ARG JUPYTERHUB_VERSION=5.5.1
+ENV MAMBA_ROOT_PREFIX=/home/jovyan/.micromamba \
+    MAMBA_NO_BANNER=1 \
+    PATH=/usr/local/bin:${PATH}
+
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
-        btop curl git sudo tar wget zip \
+        bash btop curl git sudo tar wget zip \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 1000 --shell /bin/bash jovyan \
     && useradd --create-home --uid 1001 --shell /bin/bash apulache \
@@ -18,9 +25,18 @@ RUN --mount=type=secret,id=admin_password \
     && test -n "$password" \
     && printf 'apulache:%s\n' "$password" | chpasswd \
     && unset password
+
+COPY --from=micromamba /bin/micromamba /usr/local/bin/micromamba
 COPY requirements-singleuser.txt /tmp/requirements-singleuser.txt
-RUN pip install --no-cache-dir "jupyterhub==${JUPYTERHUB_VERSION}" -r /tmp/requirements-singleuser.txt \
+RUN pip install --no-cache-dir \
+        "jupyterhub==${JUPYTERHUB_VERSION}" \
+        conda-lock==4.0.2 \
+        -r /tmp/requirements-singleuser.txt \
     && rm -f /tmp/requirements-singleuser.txt
+
+COPY kernels/personal-template/environment.yml /usr/local/share/jhub-kernel/environment.yml
+COPY bin/jhub-kernel /usr/local/bin/jhub-kernel
+RUN chmod 0755 /usr/local/bin/jhub-kernel
 
 USER jovyan
 WORKDIR /home/jovyan
