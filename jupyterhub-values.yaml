@@ -73,8 +73,9 @@ singleuser:
     - display_name: Kernel Workbench (preview)
       description: Shared Scientific Python 3.13 plus reproducible personal kernels
       kubespawner_override:
-        # Replace only after CI publishes and verifies the full-commit image tag.
-        image: ghcr.io/apulache/jupyterhub-kernel-workbench:REPLACE_WITH_VERIFIED_COMMIT_SHA
+        # CI commit 9ea82e58663a8c810d454df944f966c4314ce316; pin the
+        # published image by digest so this profile can never drift.
+        image: ghcr.io/apulache/jupyterhub-kernel-workbench@sha256:99272b04d61ea99fa9ae9042ec1b64f811f4f17009ccc3a32ef4977f1ff313bb
 
 scheduling:
   userScheduler:
