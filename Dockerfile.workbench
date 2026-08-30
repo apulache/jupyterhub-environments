@@ -15,7 +15,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 1000 --shell /bin/bash jovyan
 
-COPY --from=micromamba /usr/local/bin/micromamba /usr/local/bin/micromamba
+# mambaorg/micromamba publishes the binary at /bin/micromamba. Copy it into
+# this otherwise standard Python runtime so the server environment stays
+# independent from the shared kernel environments.
+COPY --from=micromamba /bin/micromamba /usr/local/bin/micromamba
 COPY requirements-workbench.txt /tmp/requirements-workbench.txt
 RUN python -m pip install --no-cache-dir "jupyterhub==${JUPYTERHUB_VERSION}" \
       -r /tmp/requirements-workbench.txt \
