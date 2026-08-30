@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.7
 ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.5.0
+ARG PYTHON_VERSION
 FROM ${MICROMAMBA_IMAGE} AS micromamba
 
-ARG PYTHON_VERSION
 FROM python:${PYTHON_VERSION}-slim-bookworm
 
 ARG JUPYTERHUB_VERSION=5.5.1
