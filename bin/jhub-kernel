@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Manage user-owned, lockfile-based kernels on a JupyterHub home PVC.
+set -euo pipefail
+
+readonly workspace_root="${HOME}/.jupyterhub-kernels"
+readonly env_root="${HOME}/.conda/envs"
+readonly kernels_root="${HOME}/.local/share/jupyter/kernels"
+
+usage() {
+  cat <<'EOF'
+Usage: jhub-kernel <command> [name]
+
+Commands:
+  init <name>     Create a personal environment specification.
+  lock <name>     Generate a linux-aarch64 conda lockfile.
+  install <name>  Create the locked environment and register its private kernel.
+  list            Show shared and personal kernels.
+  remove <name>   Remove only the named personal environment and kernelspec.
+
+Keep environment.yml and <name>.conda-lock.yml in Git if the environment must
+be reproducible elsewhere. Shared kernels are released only through repository review.
+EOF
+}
+
+valid_name() {
+  [[ "${1:-}" =~ ^[a-z][a-z0-9-]{0,47}$ ]]
+}
+
+require_name() {
+  if ! valid_name "${1:-}"; then
+    echo 'Kernel name must start with a lowercase letter and use lowercase letters, digits, or hyphens.' >&2
+    exit 2
+  fi
+}
+
+kernel_dir() { printf '%s/%s' "$workspace_root" "$1"; }
+lock_file() { printf '%s/%s.conda-lock.yml' "$(kernel_dir "$1")" "$1"; }
+prefix_dir() { printf '%s/%s' "$env_root" "$1"; }
+kernelspec_dir() { printf '%s/user-%s' "$kernels_root" "$1"; }
+
+case "${1:-}" in
+  init)
+    require_name "${2:-}"
+    name="$2"; target="$(kernel_dir "$name")"
+    if [[ -e "$target" ]]; then
+      echo "Refusing to overwrite $target" >&2; exit 1
+    fi
+    mkdir -p "$target"
+    sed "s/^name: .*/name: ${name}/" /usr/local/share/jhub-kernel/environment.yml > "$target/environment.yml"
+    echo "Created $target/environment.yml. Edit it, then run: jhub-kernel lock $name"
+    ;;
+  lock)
+    require_name "${2:-}"
+    name="$2"; spec="$(kernel_dir "$name")/environment.yml"
+    [[ -f "$spec" ]] || { echo "Missing $spec; run init first." >&2; exit 1; }
+    conda-lock lock --micromamba --platform linux-aarch64 --file "$spec" --lockfile "$(lock_file "$name")"
+    echo "Wrote $(lock_file "$name")"
+    ;;
+  install)
+    require_name "${2:-}"
+    name="$2"; lock="$(lock_file "$name")"; prefix="$(prefix_dir "$name")"
+    [[ -f "$lock" ]] || { echo "Missing $lock; run lock first." >&2; exit 1; }
+    [[ ! -e "$prefix" ]] || { echo "Refusing to overwrite existing environment $prefix" >&2; exit 1; }
+    micromamba create --yes --prefix "$prefix" --file "$lock"
+    "$prefix/bin/python" -m ipykernel install --user \
+      --name "user-${name}" --display-name "Personal: ${name}"
+    echo "Installed Personal: ${name}"
+    ;;
+  list)
+    jupyter kernelspec list
+    ;;
+  remove)
+    require_name "${2:-}"
+    name="$2"; prefix="$(prefix_dir "$name")"; spec="$(kernelspec_dir "$name")"
+    [[ -e "$prefix" || -e "$spec" ]] || { echo "No installed kernel named $name" >&2; exit 1; }
+    read -r -p "Remove personal environment and kernelspec '$name'? [y/N] " answer
+    [[ "$answer" == "y" || "$answer" == "Y" ]] || exit 0
+    rm -rf -- "$prefix" "$spec"
+    echo "Removed installed environment and kernelspec. Source files remain in $(kernel_dir "$name")."
+    ;;
+  -h|--help|help|'') usage ;;
+  *) usage >&2; exit 2 ;;
+esac

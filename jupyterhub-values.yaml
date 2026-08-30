@@ -1,0 +1,91 @@
+# Deploy with JupyterHub chart 4.4.1 (JupyterHub 5.5.1).
+# Tags contain the full source commit SHA. The verified OCI manifest digests are
+# recorded beside the respective images and must match the deployed pod imageIDs.
+hub:
+  # Only nodes explicitly labelled for application workloads may host Hub pods.
+  nodeSelector:
+    apulache.io/workload: application
+  image:
+    # Use the chart's official, dependency-complete Hub image. Custom images
+    # below are only for single-user Python environments.
+    name: quay.io/jupyterhub/k8s-hub
+    tag: "4.4.1"
+  deploymentStrategy:
+    type: Recreate
+  db:
+    type: sqlite-pvc
+    pvc:
+      storage: 1Gi
+      storageClassName: longhorn-single-replica
+  config:
+    JupyterHub:
+      authenticator_class: nativeauthenticator.NativeAuthenticator
+      admin_access: true
+    Authenticator:
+      admin_users:
+        - apulache
+      allowed_users:
+        - apulache
+    NativeAuthenticator:
+      enable_signup: true
+      open_signup: false
+      check_common_password: true
+      minimum_password_length: 12
+      allowed_failed_logins: 5
+
+proxy:
+  chp:
+    nodeSelector:
+      apulache.io/workload: application
+  service:
+    type: ClusterIP
+
+singleuser:
+  # Applies to every newly spawned JupyterLab server.
+  nodeSelector:
+    apulache.io/workload: application
+  fsGid: 1000
+  storage:
+    type: dynamic
+    # User-owned conda environments and package caches share this PVC.
+    capacity: 25Gi
+    dynamic:
+      storageClass: longhorn-single-replica
+      storageAccessModes:
+        - ReadWriteOnce
+  profileList:
+    - display_name: Python 3.12
+      description: Python 3.12 JupyterLab environment
+      default: true
+      kubespawner_override:
+        image: ghcr.io/apulache/jupyterhub-python:3.12-2c54f7ad324f105dcbd1ffb44fa4c81ee6db1365
+        # sha256:5e98b8d800ec09df30d052d2e9c5240c99ee49d59a9fe9dc8987c108c34f25c1
+    - display_name: Python 3.13
+      description: Python 3.13 JupyterLab environment
+      kubespawner_override:
+        image: ghcr.io/apulache/jupyterhub-python:3.13-2c54f7ad324f105dcbd1ffb44fa4c81ee6db1365
+        # sha256:162de758b7e192a5afc7fedc274e8ed75617e55224f86e2794600193a55684ee
+    - display_name: Python 3.14
+      description: Python 3.14 JupyterLab environment
+      kubespawner_override:
+        image: ghcr.io/apulache/jupyterhub-python:3.14-2c54f7ad324f105dcbd1ffb44fa4c81ee6db1365
+        # sha256:2ae4ce8ec52561cb436d818500ede139ae5a9f52ab97284c244803690c5c9924
+    - display_name: Kernel Workbench (preview)
+      description: Shared Scientific Python 3.13 plus reproducible personal kernels
+      kubespawner_override:
+        # Replace only after CI publishes and verifies the full-commit image tag.
+        image: ghcr.io/apulache/jupyterhub-kernel-workbench:REPLACE_WITH_VERIFIED_COMMIT_SHA
+
+scheduling:
+  userScheduler:
+    nodeSelector:
+      apulache.io/workload: application
+
+prePuller:
+  # The hook puller is constrained to workers. The continuous puller has no
+  # nodeSelector field in chart 4.4.1, so disable it rather than run it on master.
+  continuous:
+    enabled: false
+  hook:
+    nodeSelector:
+      apulache.io/workload: application

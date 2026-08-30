@@ -1,0 +1,36 @@
+name: scientific-py313
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - ipykernel
+  - altair
+  - beautifulsoup4
+  - bokeh
+  - bottleneck
+  - blas=*=openblas
+  - cloudpickle
+  - cython
+  - dask
+  - dill
+  - h5py
+  - ipympl
+  - ipywidgets
+  - matplotlib-base
+  - numba
+  - numexpr
+  - numpy
+  - openpyxl
+  - pandas
+  - patsy
+  - protobuf
+  - pytables
+  - scikit-image
+  - scikit-learn
+  - scipy
+  - seaborn
+  - sqlalchemy
+  - statsmodels
+  - sympy
+  - widgetsnbextension
+  - xlrd

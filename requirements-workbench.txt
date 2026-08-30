@@ -1,0 +1,4 @@
+jupyterhub==5.5.1
+jupyterlab==4.4.9
+ipykernel==6.30.1
+conda-lock==4.0.2

@@ -1,0 +1,44 @@
+# ARM64-only JupyterHub single-user image with immutable shared kernels and
+# micromamba for user-owned environments on the home PVC.
+ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.5.0
+FROM ${MICROMAMBA_IMAGE} AS micromamba
+
+FROM python:3.14-slim-bookworm
+
+ARG JUPYTERHUB_VERSION=5.5.1
+ENV MAMBA_ROOT_PREFIX=/opt/conda \
+    MAMBA_NO_BANNER=1 \
+    PATH=/opt/conda/bin:/usr/local/bin:${PATH}
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends bash ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 1000 --shell /bin/bash jovyan
+
+COPY --from=micromamba /usr/local/bin/micromamba /usr/local/bin/micromamba
+COPY requirements-workbench.txt /tmp/requirements-workbench.txt
+RUN python -m pip install --no-cache-dir "jupyterhub==${JUPYTERHUB_VERSION}" \
+      -r /tmp/requirements-workbench.txt \
+    && python -m ipykernel install --prefix=/usr/local --name python3 \
+      --display-name 'Python 3.14 (base)' \
+    && rm -f /tmp/requirements-workbench.txt
+
+# The checked-in ARM64 lockfile is the only input used to build the shared
+# scientific environment. Do not replace it with environment.yml at build time.
+COPY kernels/scientific-py313/scientific-py313.conda-lock.yml /tmp/scientific-py313.conda-lock.yml
+RUN micromamba create --yes --prefix /opt/conda/envs/scientific-py313 \
+      --file /tmp/scientific-py313.conda-lock.yml \
+    && micromamba clean --all --yes \
+    && /opt/conda/envs/scientific-py313/bin/python -m ipykernel install \
+      --prefix=/usr/local \
+      --name scientific-py313 \
+      --display-name 'Scientific Python 3.13' \
+    && chmod -R a+rX /opt/conda
+
+COPY kernels/personal-template/environment.yml /usr/local/share/jhub-kernel/environment.yml
+COPY bin/jhub-kernel /usr/local/bin/jhub-kernel
+RUN chmod 0755 /usr/local/bin/jhub-kernel
+
+USER jovyan
+WORKDIR /home/jovyan
+CMD ["jupyterhub-singleuser"]
