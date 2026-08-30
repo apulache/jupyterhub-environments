@@ -80,24 +80,21 @@ singleuser:
       description: Python 3.12 JupyterLab environment
       default: true
       kubespawner_override:
-        image: ghcr.io/apulache/jupyterhub-python:3.12-2c54f7ad324f105dcbd1ffb44fa4c81ee6db1365
-        # sha256:5e98b8d800ec09df30d052d2e9c5240c99ee49d59a9fe9dc8987c108c34f25c1
+        image: ghcr.io/apulache/jupyterhub-python@sha256:98e85ddd806d9fa6bdb5423beee0c679f434d428c6f97a6551ebb57dd691da40
     - display_name: Python 3.13
       description: Python 3.13 JupyterLab environment
       kubespawner_override:
-        image: ghcr.io/apulache/jupyterhub-python:3.13-2c54f7ad324f105dcbd1ffb44fa4c81ee6db1365
-        # sha256:162de758b7e192a5afc7fedc274e8ed75617e55224f86e2794600193a55684ee
+        image: ghcr.io/apulache/jupyterhub-python@sha256:08c6b999d7ddf2601af65cab24d537bd507fd3c67471f66d7228d1dc05309a23
     - display_name: Python 3.14
       description: Python 3.14 JupyterLab environment
       kubespawner_override:
-        image: ghcr.io/apulache/jupyterhub-python:3.14-2c54f7ad324f105dcbd1ffb44fa4c81ee6db1365
-        # sha256:2ae4ce8ec52561cb436d818500ede139ae5a9f52ab97284c244803690c5c9924
+        image: ghcr.io/apulache/jupyterhub-python@sha256:cea15c9205688d3f5fa5234adfe5e1869e439ff73da532b030b8d1c2efa00db4
     - display_name: Kernel Workbench (preview)
       description: Shared Scientific Python 3.13 plus reproducible personal kernels
       kubespawner_override:
-        # CI commit 9ea82e58663a8c810d454df944f966c4314ce316; pin the
+        # CI commit ece1b8e980b97dc001ccad05d03eaded7b5f7738; pin the
         # published image by digest so this profile can never drift.
-        image: ghcr.io/apulache/jupyterhub-kernel-workbench@sha256:99272b04d61ea99fa9ae9042ec1b64f811f4f17009ccc3a32ef4977f1ff313bb
+        image: ghcr.io/apulache/jupyterhub-kernel-workbench@sha256:1b7a6236c6135f50473abeee5a61759ff3abe82a641670bcaa3aa8998771d79a
 
 scheduling:
   userScheduler:
