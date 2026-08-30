@@ -46,6 +46,11 @@ jobs:
           file: Dockerfile.singleuser
           build-args: |
             PYTHON_VERSION=${{ matrix.image }}
+          # This is a BuildKit secret, never a Docker build argument. Configure
+          # JUPYTER_ADMIN_PASSWORD in the repository's Actions secrets before
+          # publishing images.
+          secrets: |
+            admin_password=${{ secrets.JUPYTER_ADMIN_PASSWORD }}
           platforms: linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/jupyterhub-python:${{ matrix.image }}-${{ github.sha }}
@@ -82,6 +87,10 @@ jobs:
           platforms: linux/arm64
           load: true
           tags: local/jupyterhub-kernel-workbench:${{ github.sha }}
+          # A non-production password is used solely for the disposable smoke
+          # image, so the build can validate without exposing the real secret.
+          secrets: |
+            admin_password=ci-smoke-only-password
       - name: Verify registered shared kernel
         run: |
           docker run --rm --platform linux/arm64 \
@@ -103,6 +112,8 @@ jobs:
           provenance: mode=max
           sbom: true
           tags: ghcr.io/${{ github.repository_owner }}/jupyterhub-kernel-workbench:${{ github.sha }}
+          secrets: |
+            admin_password=${{ secrets.JUPYTER_ADMIN_PASSWORD }}
       - name: Record deployment reference
         run: |
           echo "## Kernel Workbench release" >> "$GITHUB_STEP_SUMMARY"

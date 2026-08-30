@@ -1,8 +1,23 @@
+# syntax=docker/dockerfile:1.7
 ARG PYTHON_VERSION
 FROM python:${PYTHON_VERSION}-slim-bookworm
 
 ARG JUPYTERHUB_VERSION=5.5.1
-RUN useradd --create-home --uid 1000 --shell /bin/bash jovyan
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        btop curl git sudo tar wget zip \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 1000 --shell /bin/bash jovyan \
+    && useradd --create-home --uid 1001 --shell /bin/bash apulache \
+    && usermod --append --groups sudo apulache
+
+# The password is supplied only as a BuildKit secret by GitHub Actions. It is
+# neither a source-controlled build argument nor a Helm/Kubernetes value.
+RUN --mount=type=secret,id=admin_password \
+    password="$(cat /run/secrets/admin_password)" \
+    && test -n "$password" \
+    && printf 'apulache:%s\n' "$password" | chpasswd \
+    && unset password
 COPY requirements-singleuser.txt /tmp/requirements-singleuser.txt
 RUN pip install --no-cache-dir "jupyterhub==${JUPYTERHUB_VERSION}" -r /tmp/requirements-singleuser.txt \
     && rm -f /tmp/requirements-singleuser.txt

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # ARM64-only JupyterHub single-user image with immutable shared kernels and
 # micromamba for user-owned environments on the home PVC.
 ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.5.0
@@ -11,9 +12,20 @@ ENV MAMBA_ROOT_PREFIX=/opt/conda \
     PATH=/opt/conda/bin:/usr/local/bin:${PATH}
 
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends bash ca-certificates \
+    && apt-get install --yes --no-install-recommends \
+        bash btop ca-certificates curl git sudo tar wget zip \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd --create-home --uid 1000 --shell /bin/bash jovyan
+    && useradd --create-home --uid 1000 --shell /bin/bash jovyan \
+    && useradd --create-home --uid 1001 --shell /bin/bash apulache \
+    && usermod --append --groups sudo apulache
+
+# The password is supplied only as a BuildKit secret by GitHub Actions. It is
+# neither a source-controlled build argument nor a Helm/Kubernetes value.
+RUN --mount=type=secret,id=admin_password \
+    password="$(cat /run/secrets/admin_password)" \
+    && test -n "$password" \
+    && printf 'apulache:%s\n' "$password" | chpasswd \
+    && unset password
 
 # mambaorg/micromamba publishes the binary at /bin/micromamba. Copy it into
 # this otherwise standard Python runtime so the server environment stays
