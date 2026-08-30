@@ -50,8 +50,9 @@ singleuser:
     guarantee: 3
     limit: 3
   memory:
-    guarantee: 5Gi
-    limit: 5Gi
+    # KubeSpawner accepts decimal K/M/G/T quantities here, not Kubernetes Gi.
+    guarantee: 5G
+    limit: 5G
   # Prefer the Pi 5 worker for user compute, but fall back to either other
   # labelled worker when it cannot satisfy this pod's requested resources.
   extraPodConfig:
