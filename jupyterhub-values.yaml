@@ -44,6 +44,27 @@ singleuser:
   # Applies to every newly spawned JupyterLab server.
   nodeSelector:
     apulache.io/workload: application
+  # Reserve and cap each user server at a size that fits the 8Gi workers.
+  # Matching requests make the rpi5-worker03 preference capacity-aware.
+  cpu:
+    guarantee: 3
+    limit: 3
+  memory:
+    guarantee: 5Gi
+    limit: 5Gi
+  # Prefer the Pi 5 worker for user compute, but fall back to either other
+  # labelled worker when it cannot satisfy this pod's requested resources.
+  extraPodConfig:
+    affinity:
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                    - rpi5-worker03
   fsGid: 1000
   storage:
     type: dynamic
